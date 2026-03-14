@@ -10,12 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",
     "lucide-react": "^0.577.0",
+    "monaco-editor": "^0.55.1",
     "mongoose": "^9.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-rnd": "^10.5.3",
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {

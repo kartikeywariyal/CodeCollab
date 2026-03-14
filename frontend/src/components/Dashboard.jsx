@@ -238,7 +238,7 @@ export const Dashboard = ({ user, onLogout }) => {
                                 <button
                                     type="submit"
                                     className="btn-primary w-full mt-4 flex items-center justify-center gap-2"
-                                >
+                                    onClick={() => navigate("/editor")}>
                                     Start Session
                                     <ChevronRight size={18} />
                                 </button>
