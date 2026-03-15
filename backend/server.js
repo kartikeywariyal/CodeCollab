@@ -39,13 +39,13 @@ app.use('/editor', editorRouter);
 // ─── Code Execution via JDoodle ─────────────────────────────────────────────
 // JDoodle language map: Monaco ID → { language, versionIndex }
 const JDOODLE_LANG_MAP = {
-    javascript: { language: 'nodejs',   versionIndex: '4' },
-    python:     { language: 'python3',  versionIndex: '4' },
-    java:       { language: 'java',     versionIndex: '4' },
-    cpp:        { language: 'cpp17',    versionIndex: '1' },
+    javascript: { language: 'nodejs', versionIndex: '4' },
+    python: { language: 'python3', versionIndex: '4' },
+    java: { language: 'java', versionIndex: '4' },
+    cpp: { language: 'cpp17', versionIndex: '1' },
     typescript: { language: 'typescript', versionIndex: '1' },
-    go:         { language: 'go',       versionIndex: '4' },
-    rust:       { language: 'rust',     versionIndex: '4' },
+    go: { language: 'go', versionIndex: '4' },
+    rust: { language: 'rust', versionIndex: '4' },
 };
 
 app.post('/run', async (req, res) => {
@@ -65,10 +65,10 @@ app.post('/run', async (req, res) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                clientId:     process.env.JDOODLE_CLIENT_ID,
+                clientId: process.env.JDOODLE_CLIENT_ID,
                 clientSecret: process.env.JDOODLE_CLIENT_SECRET,
-                script:       code,
-                language:     langConfig.language,
+                script: code,
+                language: langConfig.language,
                 versionIndex: langConfig.versionIndex,
             }),
         });
@@ -106,12 +106,21 @@ function getRoomUsers(roomId) {
 io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
-    // Join room
-    socket.on('join-room', ({ roomId, displayName, username }) => {
+    socket.on('join-room', async ({ roomId, displayName, username }) => {
         socket.join(roomId);
 
         if (!roomState[roomId]) {
-            roomState[roomId] = { code: '', users: [] };
+            // Load saved code from DB when room is first opened in memory
+            let savedCode = '';
+            try {
+                const room = await Room.findOne({ roomId });
+                if (room?.sourceCode) {
+                    savedCode = room.sourceCode;
+                }
+            } catch (err) {
+                console.error(`Failed to load saved code for room ${roomId}:`, err.message);
+            }
+            roomState[roomId] = { code: savedCode, users: [] };
         }
 
         // Add user to in-memory list (avoid duplicates by socketId)

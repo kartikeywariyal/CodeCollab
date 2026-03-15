@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Editor from "@monaco-editor/react";
-import { Copy, Play, Check, Zap } from "lucide-react";
+import { Copy, Play, Check, Zap, Save } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
@@ -16,6 +16,7 @@ function CodeEditor() {
     const [consoleOutput, setConsoleOutput] = useState("");
     const [copied, setCopied] = useState(false);
     const [users, setUsers] = useState([]);
+    const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'autosaved'
 
     const [sidebarWidth, setSidebarWidth] = useState(256);
     const [consoleHeight, setConsoleHeight] = useState(256);
@@ -157,7 +158,6 @@ function CodeEditor() {
         setConsoleOutput("Running...");
 
         try {
-            // Route through our backend — credentials stay server-side
             const res = await axios.post(`${API_URL}/run`, { code, language });
             const { output, memory, cpuTime } = res.data;
             const cleaned = (output || "No output.").trimEnd();
@@ -170,6 +170,27 @@ function CodeEditor() {
             setIsRunning(false);
         }
     };
+
+    const saveCode = async (isAuto = false) => {
+        setSaveStatus('saving');
+        try {
+            await axios.put(`${API_URL}/editor/${roomId}/code`, { code });
+            setSaveStatus(isAuto ? 'autosaved' : 'saved');
+        } catch (err) {
+            console.error('Failed to save code:', err);
+            setSaveStatus(null);
+        } finally {
+            setTimeout(() => setSaveStatus(null), 3000);
+        }
+    };
+
+    // Auto-save every 2 minutes
+    useEffect(() => {
+        const interval = setInterval(() => {
+            saveCode(true);
+        }, 2 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, [code, roomId]);
 
     const handleDisconnect = () => {
         socketRef.current?.emit("leave-room", { roomId });
@@ -187,7 +208,7 @@ function CodeEditor() {
         }
     };
 
-    // Local dropdown change — update DB + emit to others (no URL change needed)
+
     const handleLanguageChange = async (e) => {
         const newLanguage = e.target.value;
         await applyLanguage(newLanguage);
@@ -302,9 +323,23 @@ function CodeEditor() {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
-                        <span className="text-emerald-500 text-xs font-medium tracking-wider">LIVE</span>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => saveCode(false)}
+                            disabled={saveStatus === 'saving'}
+                            className="flex items-center gap-1.5 bg-violet-500/10 hover:bg-violet-500/20 disabled:opacity-60 disabled:cursor-not-allowed border border-violet-500/20 text-violet-400 px-3 py-1 rounded-full text-xs font-medium transition-colors"
+                            title="Save code to database"
+                        >
+                            {saveStatus === 'saving' ? (
+                                <><div className="w-3 h-3 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin" /> Saving...</>
+                            ) : (
+                                <><Save size={13} /> Save</>
+                            )}
+                        </button>
+                        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+                            <span className="text-emerald-500 text-xs font-medium tracking-wider">LIVE</span>
+                        </div>
                     </div>
                 </div>
 
@@ -354,9 +389,26 @@ function CodeEditor() {
                         <span>Spaces: 2</span>
                         <span className="uppercase">{language}</span>
                     </div>
-                    <div className="flex items-center gap-1 opacity-90">
-                        <Zap size={12} fill="currentColor" />
-                        <span>Connected</span>
+                    <div className="flex items-center gap-3">
+                        {saveStatus === 'saved' && (
+                            <span className="flex items-center gap-1 text-emerald-300">
+                                <Check size={11} /> Saved
+                            </span>
+                        )}
+                        {saveStatus === 'autosaved' && (
+                            <span className="flex items-center gap-1 text-emerald-300">
+                                <Check size={11} /> Autosaved
+                            </span>
+                        )}
+                        {saveStatus === 'saving' && (
+                            <span className="flex items-center gap-1 opacity-80">
+                                <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...
+                            </span>
+                        )}
+                        <div className="flex items-center gap-1 opacity-90">
+                            <Zap size={12} fill="currentColor" />
+                            <span>Connected</span>
+                        </div>
                     </div>
                 </div>
             </div>

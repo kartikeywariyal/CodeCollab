@@ -17,9 +17,6 @@ router.post('/create', async (req, res) => {
         const existingRoom = await Room.findOne({ roomId });
 
         if (existingRoom) {
-            // --- JOIN EXISTING ROOM ---
-
-            // Check if displayName is already taken in this room
             const nameTaken = existingRoom.users.some(
                 (u) => u.displayName?.toLowerCase() === normalizedDisplay.toLowerCase()
             );
