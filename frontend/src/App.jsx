@@ -15,7 +15,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Dashboard user={user} onLogout={() => setUser(null)} />} />
-      <Route path="/editor" element={<CodeEditor />} />
+      <Route path="/editor/:roomId" element={<CodeEditor />} />
       <Route path="/signin" element={<Auth onLogin={handleLogin} />} />
       <Route path="/signup" element={<Auth onLogin={handleLogin} />} />
       <Route path="/sessions" element={<Sessions />} />

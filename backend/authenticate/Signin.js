@@ -8,22 +8,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { identifier, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({ message: 'email and password are required' });
+        if (!identifier || !password) {
+            return res.status(400).json({ message: 'email/username and password are required' });
         }
 
-        const normalizedEmail = String(email).toLowerCase().trim();
+        const normalizedIdentifier = String(identifier).toLowerCase().trim();
 
-        const user = await User.findOne({ email: normalizedEmail });
+        // Find user by email OR username
+        const user = await User.findOne({
+            $or: [
+                { email: normalizedIdentifier },
+                { username: normalizedIdentifier }
+            ]
+        });
+
         if (!user) {
-            return res.status(401).json({ message: 'invalid email or password' });
+            return res.status(401).json({ message: 'invalid credentials' });
         }
 
         const passwordOk = await verifyPassword(password, user.passwordHash);
         if (!passwordOk) {
-            return res.status(401).json({ message: 'invalid email or password' });
+            return res.status(401).json({ message: 'invalid credentials' });
         }
 
         const token = jwt.sign({ sub: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
@@ -34,6 +41,7 @@ router.post('/login', async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
+                username: user.username,
                 email: user.email,
             },
         });

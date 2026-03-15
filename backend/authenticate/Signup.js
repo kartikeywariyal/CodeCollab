@@ -8,10 +8,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 
 router.post('/signup', async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, username, email, password } = req.body;
 
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: 'name, email, and password are required' });
+        if (!name || !username || !email || !password) {
+            return res.status(400).json({ message: 'name, username, email, and password are required' });
+        }
+
+        if (username.length < 3) {
+            return res.status(400).json({ message: 'username must be at least 3 characters' });
         }
 
         if (password.length < 6) {
@@ -19,16 +23,23 @@ router.post('/signup', async (req, res) => {
         }
 
         const normalizedEmail = String(email).toLowerCase().trim();
+        const normalizedUsername = String(username).toLowerCase().trim();
 
-        const existing = await User.findOne({ email: normalizedEmail });
-        if (existing) {
+        const existingEmail = await User.findOne({ email: normalizedEmail });
+        if (existingEmail) {
             return res.status(409).json({ message: 'email already registered' });
+        }
+
+        const existingUsername = await User.findOne({ username: normalizedUsername });
+        if (existingUsername) {
+            return res.status(409).json({ message: 'username already taken' });
         }
 
         const passwordHash = await hashPassword(password);
 
         const user = await User.create({
             name: String(name).trim(),
+            username: normalizedUsername,
             email: normalizedEmail,
             passwordHash,
         });
@@ -41,6 +52,7 @@ router.post('/signup', async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
+                username: user.username,
                 email: user.email,
             },
         });

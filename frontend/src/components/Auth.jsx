@@ -12,9 +12,11 @@ export const Auth = ({ onLogin }) => {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Form states
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // email or username (login)
+  const [email, setEmail] = useState('');            // email (signup only)
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,14 +25,17 @@ export const Auth = ({ onLogin }) => {
 
     try {
       const endpoint = isLogin ? '/login' : '/signup';
-      const payload = isLogin ? { email, password } : { name, email, password };
+      const payload = isLogin
+        ? { identifier, password }
+        : { name, username, email, password };
 
       const response = await axios.post(`http://localhost:4000${endpoint}`, payload);
 
       const { token, user } = response.data;
 
-      // Store token
+      // Store token and user info
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
 
       // Update app state
       onLogin(user);
@@ -44,9 +49,11 @@ export const Auth = ({ onLogin }) => {
   };
 
   useEffect(() => {
+    setIdentifier('');
     setEmail('');
     setPassword('');
     setName('');
+    setUsername('');
     setErrorMsg('');
   }, [isLogin]);
 
@@ -116,7 +123,7 @@ export const Auth = ({ onLogin }) => {
               </div>
             )}
 
-            {/* Name input (Sign Up Only) with height animation */}
+            {/* Name input (Sign Up Only) */}
             <div
               className={`transition-all duration-300 overflow-hidden ${!isLogin ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0'
                 }`}
@@ -136,18 +143,49 @@ export const Auth = ({ onLogin }) => {
               </div>
             </div>
 
+            {/* Username input (Sign Up Only) */}
+            <div
+              className={`transition-all duration-300 overflow-hidden ${!isLogin ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0'
+                }`}
+            >
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40">
+                  <span className="text-sm font-bold">@</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Username (e.g. kartik99)"
+                  className="glass-input pl-11"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required={!isLogin}
+                />
+              </div>
+            </div>
+
             <div className="relative delay-100 animate-fade-in">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40">
                 <Mail size={18} />
               </div>
-              <input
-                type="email"
-                placeholder="Email Address"
-                className="glass-input pl-11"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              {isLogin ? (
+                <input
+                  type="text"
+                  placeholder="Email or Username"
+                  className="glass-input pl-11"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                />
+              ) : (
+                <input
+                  type="email"
+                  placeholder="Email Address"
+                  className="glass-input pl-11"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              )}
             </div>
 
             <div className="relative delay-200 animate-fade-in">

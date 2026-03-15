@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Github, Play, Zap, Shield, Code, ChevronRight, Lock, History } from 'lucide-react';
-
+import axios from 'axios';
+import { Auth } from './Auth';
 export const Dashboard = ({ user, onLogout }) => {
     const navigate = useNavigate();
     const [roomId, setRoomId] = useState('');
@@ -9,6 +10,7 @@ export const Dashboard = ({ user, onLogout }) => {
     const [language, setLanguage] = useState('javascript');
     const [agenda, setAgenda] = useState('');
     const [openFaqs, setOpenFaqs] = useState([]);
+    const [error, setError] = useState('');
 
     const faqs = [
         {
@@ -38,10 +40,48 @@ export const Dashboard = ({ user, onLogout }) => {
         setRoomId(code);
     };
 
-    const handleStartSession = (e) => {
+    const handleStartSession = async (e) => {
         e.preventDefault();
-        if (!roomId || !displayName) return;
-        console.log('Starting session:', { roomId, displayName, language, agenda });
+        setError('');
+
+        if (!roomId) {
+            setError('Please provide a Room ID.');
+            return;
+        }
+
+        const isLogin = !!user;
+        let finalDisplayName = displayName;
+
+        if (!displayName) {
+            if (isLogin) {
+                finalDisplayName = user.name;
+            } else {
+                setError('Display Name is mandatory for guests.');
+                return;
+            }
+        }
+
+        try {
+            const apiUrl = 'http://localhost:4000';
+            const response = await axios.post(`${apiUrl}/session/create`, {
+                roomId,
+                displayName: finalDisplayName,
+                language,
+                agenda,
+                username: user?.username || null  // Send username if logged in
+            });
+
+            if (response.status === 201 || response.status === 200) {
+                navigate(`/editor/${roomId}`, {
+                    state: { displayName: finalDisplayName }
+                });
+            }
+        } catch (err) {
+
+            setError(err.response?.data?.error || 'An unexpected error occurred. Please try again.');
+
+            console.error('Start session error:', err);
+        }
     };
 
     return (
@@ -160,6 +200,11 @@ export const Dashboard = ({ user, onLogout }) => {
                             <div className="mb-8">
                                 <h2 className="text-2xl font-bold mb-2">Initialize Workspace</h2>
                                 <p className="text-white/50 text-sm">Secure, ephemeral environments.</p>
+                                {error && (
+                                    <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                                        {error}
+                                    </div>
+                                )}
                             </div>
 
                             <form onSubmit={handleStartSession} className="space-y-5">
@@ -191,11 +236,11 @@ export const Dashboard = ({ user, onLogout }) => {
                                     <label className="text-xs font-bold text-white/40 tracking-wider">2. DISPLAY NAME</label>
                                     <input
                                         type="text"
-                                        placeholder="e.g. Kartikey"
+                                        placeholder={user ? `e.g. ${user.name}` : "e.g. Kartikey"}
                                         className="glass-input"
                                         value={displayName}
                                         onChange={(e) => setDisplayName(e.target.value)}
-                                        required
+                                        required={!user}
                                     />
                                 </div>
 
@@ -237,8 +282,9 @@ export const Dashboard = ({ user, onLogout }) => {
 
                                 <button
                                     type="submit"
+                                    onClick={handleStartSession}
                                     className="btn-primary w-full mt-4 flex items-center justify-center gap-2"
-                                    onClick={() => navigate("/editor")}>
+                                >
                                     Start Session
                                     <ChevronRight size={18} />
                                 </button>
