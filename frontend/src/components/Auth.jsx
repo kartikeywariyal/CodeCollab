@@ -29,7 +29,8 @@ export const Auth = ({ onLogin }) => {
         ? { identifier, password }
         : { name, username, email, password };
 
-      const response = await axios.post(`http://localhost:4000${endpoint}`, payload);
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://codecollab-1-yuns.onrender.com';
+      const response = await axios.post(`${apiUrl}${endpoint}`, payload);
 
       const { token, user } = response.data;
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Clock, Users, Code2, Timer, ArrowRight, History, Layers, X, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://codecollab-1-yuns.onrender.com';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

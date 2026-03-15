@@ -62,7 +62,7 @@ export const Dashboard = ({ user, onLogout }) => {
         }
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+            const apiUrl = import.meta.env.VITE_API_URL || 'https://codecollab-1-yuns.onrender.com';
             const response = await axios.post(`${apiUrl}/session/create`, {
                 roomId,
                 displayName: finalDisplayName,
