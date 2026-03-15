@@ -21,10 +21,17 @@ const roomSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    createdBy: {
+        type: String,
+        default: null
+    },
     createdAt: {
         type: Date,
-        default: Date.now,
-        expires: 86400 // Automatically delete after 24 hours
+        default: Date.now
+    },
+    expiresAt: {
+        type: Date,
+        default: null
     },
     users: {
         type: [Object],
@@ -35,5 +42,10 @@ const roomSchema = new mongoose.Schema({
         default: 'write'
     }
 });
+
+// TTL index: MongoDB will auto-delete documents once expiresAt is reached.
+// Guest rooms have expiresAt = null so they are NOT auto-deleted by this index
+// (they are deleted on disconnect instead).
+roomSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('Room', roomSchema);

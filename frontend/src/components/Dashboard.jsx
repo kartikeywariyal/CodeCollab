@@ -37,7 +37,7 @@ export const Dashboard = ({ user, onLogout }) => {
 
     const handleGenerate = () => {
         const code = Math.random().toString(36).substring(2, 12).toUpperCase();
-        setRoomId(code);
+        setRoomId(user ? `${user.username}-${code}` : code);
     };
 
     const handleStartSession = async (e) => {

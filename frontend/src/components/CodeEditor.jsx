@@ -92,7 +92,7 @@ function CodeEditor() {
     // ── Monaco onChange — emit only if change is LOCAL ──────────────────────
     const handleCodeChange = useCallback((value) => {
         if (isRemoteChange.current) {
-            // This change came from the server — reset flag, don't re-emit
+            //  change came from the server — reset flag, don't re-emit
             isRemoteChange.current = false;
             setCode(value || "");
             return;
@@ -202,7 +202,7 @@ function CodeEditor() {
         navigate("/");
     };
 
-    // Update language locally + persist to DB (used by both local and remote changes)
+
     const applyLanguage = async (newLanguage) => {
         setLanguage(newLanguage);
         try {

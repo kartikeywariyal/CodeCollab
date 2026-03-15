@@ -37,7 +37,6 @@ app.use('/session', sessionRouter);
 app.use('/editor', editorRouter);
 
 // ─── Code Execution via JDoodle ─────────────────────────────────────────────
-// JDoodle language map: Monaco ID → { language, versionIndex }
 const JDOODLE_LANG_MAP = {
     javascript: { language: 'nodejs', versionIndex: '4' },
     python: { language: 'python3', versionIndex: '4' },
@@ -91,7 +90,7 @@ app.post('/run', async (req, res) => {
     }
 });
 
-// ─── In-memory room state ───────────────────────────────────────────────────
+
 // roomState[roomId] = { code: string, users: [{ socketId, displayName, username }] }
 const roomState = {};
 
@@ -110,7 +109,6 @@ io.on('connection', (socket) => {
         socket.join(roomId);
 
         if (!roomState[roomId]) {
-            // Load saved code from DB when room is first opened in memory
             let savedCode = '';
             try {
                 const room = await Room.findOne({ roomId });
@@ -123,19 +121,19 @@ io.on('connection', (socket) => {
             roomState[roomId] = { code: savedCode, users: [] };
         }
 
-        // Add user to in-memory list (avoid duplicates by socketId)
+
         roomState[roomId].users = roomState[roomId].users.filter(u => u.socketId !== socket.id);
         roomState[roomId].users.push({ socketId: socket.id, displayName, username: username || null });
 
-        // Store user info on the socket for cleanup on disconnect
+
         socket.data.roomId = roomId;
         socket.data.displayName = displayName;
         socket.data.username = username || null;
 
-        // Send current code state to the joining user
+
         socket.emit('init-code', { code: roomState[roomId].code });
 
-        // Notify everyone in the room of the updated user list
+
         io.to(roomId).emit('users-updated', { users: getRoomUsers(roomId) });
 
         console.log(`${displayName} joined room ${roomId}`);
@@ -146,7 +144,7 @@ io.on('connection', (socket) => {
         if (roomState[roomId]) {
             roomState[roomId].code = code;
         }
-        // Broadcast to every OTHER socket in the room
+
         socket.to(roomId).emit('code-change', { code });
     });
     socket.on('language-change', ({ roomId, language }) => {
@@ -156,12 +154,12 @@ io.on('connection', (socket) => {
 
         io.to(roomId).emit('language-change', { language });
     });
-    // Explicit leave (disconnect button)
+
     socket.on('leave-room', ({ roomId }) => {
         handleLeave(socket, roomId);
     });
 
-    // Auto-cleanup on disconnect
+
     socket.on('disconnect', () => {
         const roomId = socket.data.roomId;
         if (roomId) {
@@ -171,13 +169,24 @@ io.on('connection', (socket) => {
     });
 });
 
-function handleLeave(socket, roomId) {
+async function handleLeave(socket, roomId) {
     socket.leave(roomId);
     if (roomState[roomId]) {
         roomState[roomId].users = roomState[roomId].users.filter(u => u.socketId !== socket.id);
         io.to(roomId).emit('users-updated', { users: getRoomUsers(roomId) });
-        // Clean up empty rooms from memory
+
         if (roomState[roomId].users.length === 0) {
+            // Room is empty — check if it was created by a guest
+            try {
+                const room = await Room.findOne({ roomId });
+                if (room && !room.createdBy) {
+                    // Guest room: delete from DB immediately
+                    await Room.deleteOne({ roomId });
+                    console.log(`[Cleanup] Guest room ${roomId} deleted from DB`);
+                }
+            } catch (err) {
+                console.error(`[Cleanup] Failed to check/delete room ${roomId}:`, err.message);
+            }
             delete roomState[roomId];
         }
     }
@@ -200,7 +209,7 @@ setInterval(async () => {
             console.error(`[Auto-save] Failed for room ${roomId}:`, err.message);
         }
     }
-}, 2 * 60 * 1000); // every 2 minutes
+}, 2 * 60 * 1000);
 
 // ─── Start server ────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000;
