@@ -45,9 +45,9 @@ function CodeEditor() {
 
 
         socket.on("init-code", ({ code: initialCode }) => {
-            if (initialCode) {
+            if (typeof initialCode === "string") {
                 isRemoteChange.current = true;
-                setCode(initialCode);
+                setCode(initialCode || "// Welcome to CodeCollab!\n");
             }
         });
 
@@ -72,14 +72,18 @@ function CodeEditor() {
         };
     }, [roomId]);
 
-    // ── Fetch initial language from DB on mount ─────────────────────────────
+    // ── Fetch initial session data from DB on mount ──────────────────────────
     useEffect(() => {
         const fetchSession = async () => {
             try {
                 const res = await axios.get(`${API_URL}/session/${roomId}`);
                 if (res.data?.language) setLanguage(res.data.language);
+                if (typeof res.data?.sourceCode === "string" && res.data.sourceCode.length > 0) {
+                    isRemoteChange.current = true;
+                    setCode(res.data.sourceCode);
+                }
             } catch (error) {
-                console.error("Failed to fetch session metadata:", error);
+                console.error("Failed to fetch session data:", error);
             }
         };
         fetchSession();
